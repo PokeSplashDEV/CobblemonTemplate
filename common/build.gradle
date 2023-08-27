@@ -6,6 +6,10 @@ dependencies {
     modImplementation("ca.landonjw.gooeylibs:api:${rootProject.gooeylibs_version}")
     modApi("curse.maven:cobblemon-687131:${rootProject.cobblemon_file_version}")
     modApi("curse.maven:architectury-api-419699:${rootProject.architectury_file_version}")
+    modApi("net.impactdev.impactor.api:economy:5.1.0") {
+        transitive = false
+    }
+
 }
 
 architectury {
