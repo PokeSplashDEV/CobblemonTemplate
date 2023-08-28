@@ -12,7 +12,9 @@ public class CobblemonTemplate
 	public static final Permissions permissions = new Permissions();
 
 	public static void init() {
+		// Adds command to registry
 		CommandsRegistry.addCommand(new ExampleCommand());
+		// Registry registers all commands
 		CommandRegistrationEvent.EVENT.register(CommandsRegistry::registerCommands);
 	}
 }

@@ -24,7 +24,11 @@ import java.util.Arrays;
  */
 public class ExampleCommand extends BaseCommand {
 
+	/**
+	 * Constructor to create a new comand.
+	 */
 	public ExampleCommand() {
+		// Super needs the command, a list of aliases, permission and array of subcommands.
 		super("examplecommand", Arrays.asList("examplecommandalias"),
 				CobblemonTemplate.permissions.getPermission("ExamplePermission"), Arrays.asList(new ExampleSubcommand()));
 	}

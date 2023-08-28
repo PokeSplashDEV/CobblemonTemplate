@@ -13,8 +13,10 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.function.Consumer;
 
+/**
+ * Abstract class that contains some utility methods.
+ */
 public abstract class Utils {
-	// Base path for the mods folder.
 
 	/**
 	 * Method to write some data to file.
@@ -104,7 +106,7 @@ public abstract class Utils {
 	 * @param path The directory to check.
 	 * @return the directory as a File.
 	 */
-	public static File checkForDirectory(String path) {
+	private static File checkForDirectory(String path) {
 		File dir = new File(path);
 		if (!dir.exists()) {
 			dir.mkdirs();
@@ -116,7 +118,7 @@ public abstract class Utils {
 	 * Method to create a new gson builder.
 	 * @return Gson instance.
 	 */
-	public static Gson newGson() {
+	private static Gson newGson() {
 		return new GsonBuilder().setPrettyPrinting().create();
 	}
 
