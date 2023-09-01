@@ -2,6 +2,9 @@ package org.pokesplash.cobblemontemplate.util;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.pokesplash.cobblemontemplate.CobblemonTemplate;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -23,6 +26,8 @@ import java.util.function.Consumer;
  */
 public abstract class Utils {
 
+	private final static Logger logger = LogManager.getLogger();
+
 	/**
 	 * Method to write some data to file.
 	 * @param filePath the directory to write the file to
@@ -33,7 +38,7 @@ public abstract class Utils {
 	public static CompletableFuture<Boolean> writeFileAsync(String filePath, String filename, String data) {
 		CompletableFuture<Boolean> future = new CompletableFuture<>();
 
-		Path path = Paths.get(filePath, filename);
+		Path path = Paths.get(new File("").getAbsolutePath() + filePath, filename);
 		File file = path.toFile();
 
 		// If the path doesn't exist, create it.
@@ -62,12 +67,12 @@ public abstract class Utils {
 
 				@Override
 				public void failed(Throwable exc, ByteBuffer attachment) {
-					exc.printStackTrace();
+					logger.fatal("Unable to write to file for " + CobblemonTemplate.MOD_ID);
 					future.complete(false);
 				}
 			});
 		} catch (IOException | SecurityException e) {
-			e.printStackTrace();
+			logger.fatal("Unable to write to file for " + CobblemonTemplate.MOD_ID);
 			future.complete(false);
 		}
 
@@ -86,7 +91,7 @@ public abstract class Utils {
 		CompletableFuture<Boolean> future = new CompletableFuture<>();
 		ExecutorService executor = Executors.newSingleThreadExecutor();
 
-		Path path = Paths.get(filePath, filename);
+		Path path = Paths.get(new File("").getAbsolutePath() + filePath, filename);
 		File file = path.toFile();
 
 		if (!file.exists()) {
@@ -112,11 +117,11 @@ public abstract class Utils {
 			executor.shutdown();
 			future.complete(true);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.fatal("Unable to read file " + filename + " for " + CobblemonTemplate.MOD_ID);
 			executor.shutdown();
 			future.completeExceptionally(e);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.fatal("Unable to read file " + filename + " for " + CobblemonTemplate.MOD_ID);
 			executor.shutdown();
 			future.completeExceptionally(e);
 		}
@@ -130,7 +135,7 @@ public abstract class Utils {
 	 * @return the directory as a File.
 	 */
 	private static File checkForDirectory(String path) {
-		File dir = new File(path);
+		File dir = new File(new File("").getAbsolutePath() + path);
 		if (!dir.exists()) {
 			dir.mkdirs();
 		}
