@@ -2,11 +2,10 @@ package org.pokesplash.cobblemontemplate.util;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.pokesplash.cobblemontemplate.CobblemonTemplate;
-
-import java.io.*;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousFileChannel;
 import java.nio.channels.CompletionHandler;
@@ -15,25 +14,20 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.Scanner;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
-/**
- * Abstract class that contains some utility methods.
- */
 public abstract class Utils {
-
-	private final static Logger logger = LogManager.getLogger();
-
 	/**
 	 * Method to write some data to file.
 	 * @param filePath the directory to write the file to
 	 * @param filename the name of the file
 	 * @param data the data to write to file
-	 * @return CompletableFuture with a boolean that dictates the success of the write.
+	 * @return CompletableFuture if writing to file was successful
 	 */
 	public static CompletableFuture<Boolean> writeFileAsync(String filePath, String filename, String data) {
 		CompletableFuture<Boolean> future = new CompletableFuture<>();
@@ -50,7 +44,9 @@ public abstract class Utils {
 		try (AsynchronousFileChannel fileChannel = AsynchronousFileChannel.open(
 				path,
 				StandardOpenOption.WRITE,
-				StandardOpenOption.CREATE)) {
+				StandardOpenOption.CREATE,
+				StandardOpenOption.TRUNCATE_EXISTING
+		)) {
 			ByteBuffer buffer = ByteBuffer.wrap(data.getBytes(StandardCharsets.UTF_8));
 
 			fileChannel.write(buffer, 0, buffer, new CompletionHandler<Integer, ByteBuffer>() {
@@ -67,24 +63,44 @@ public abstract class Utils {
 
 				@Override
 				public void failed(Throwable exc, ByteBuffer attachment) {
-					logger.fatal("Unable to write to file for " + CobblemonTemplate.MOD_ID);
-					future.complete(false);
+					CobblemonTemplate.logger.fatal("Unable to write file asynchronously, attempting sync write.");
+					future.complete(writeFileSync(file, data));
 				}
 			});
 		} catch (IOException | SecurityException e) {
-			logger.fatal("Unable to write to file for " + CobblemonTemplate.MOD_ID);
-			future.complete(false);
+			CobblemonTemplate.logger.fatal("Unable to write file asynchronously, attempting sync write.");
+			future.complete(future.complete(false));
 		}
 
 		return future;
 	}
 
 	/**
+	 * Method to write a file sync.
+	 * @param file the location to write.
+	 * @param data the data to write.
+	 * @return true if the write was successful.
+	 */
+	public static boolean writeFileSync(File file, String data) {
+		try {
+			FileWriter writer = new FileWriter(file);
+			writer.write(data);
+			writer.close();
+			return true;
+		} catch (Exception e) {
+			CobblemonTemplate.logger.fatal("Unable to write to file for " + CobblemonTemplate.MOD_ID + ".\nStack Trace: ");
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+
+	/**
 	 * Method to read a file asynchronously
 	 * @param filePath the path of the directory to find the file at
 	 * @param filename the name of the file
 	 * @param callback a callback to deal with the data read
-	 * @return CompletableFuture with a boolean that dictates the success of the read.
+	 * @return true if the file was read successfully
 	 */
 	public static CompletableFuture<Boolean> readFileAsync(String filePath, String filename,
 	                                                       Consumer<String> callback) {
@@ -116,17 +132,38 @@ public abstract class Utils {
 			fileChannel.close();
 			executor.shutdown();
 			future.complete(true);
-		} catch (IOException e) {
-			logger.fatal("Unable to read file " + filename + " for " + CobblemonTemplate.MOD_ID);
-			executor.shutdown();
-			future.completeExceptionally(e);
 		} catch (Exception e) {
-			logger.fatal("Unable to read file " + filename + " for " + CobblemonTemplate.MOD_ID);
+			CobblemonTemplate.logger.error("Unable to read file " + filename + " async, attempting to read sync.");
+			future.complete(readFileSync(file, callback));
 			executor.shutdown();
-			future.completeExceptionally(e);
 		}
 
 		return future;
+	}
+
+	/**
+	 * Method to read files sync.
+	 * @param file The file to read
+	 * @param callback what to do with the read data.
+	 * @return true if the file could be read successfully.
+	 */
+	public static boolean readFileSync(File file, Consumer<String> callback) {
+		try {
+			Scanner reader = new Scanner(file);
+
+			String data = "";
+
+			while (reader.hasNextLine()) {
+				data += reader.nextLine();
+			}
+			reader.close();
+			callback.accept(data);
+			return true;
+		} catch (Exception e) {
+			CobblemonTemplate.logger.fatal("Unable to read file " + file.getName() + " for " + CobblemonTemplate.MOD_ID + ".\nStack Trace: ");
+			e.printStackTrace();
+			return false;
+		}
 	}
 
 	/**
@@ -134,7 +171,7 @@ public abstract class Utils {
 	 * @param path The directory to check.
 	 * @return the directory as a File.
 	 */
-	private static File checkForDirectory(String path) {
+	public static File checkForDirectory(String path) {
 		File dir = new File(new File("").getAbsolutePath() + path);
 		if (!dir.exists()) {
 			dir.mkdirs();
@@ -146,7 +183,7 @@ public abstract class Utils {
 	 * Method to create a new gson builder.
 	 * @return Gson instance.
 	 */
-	private static Gson newGson() {
+	public static Gson newGson() {
 		return new GsonBuilder().setPrettyPrinting().create();
 	}
 
@@ -177,4 +214,39 @@ public abstract class Utils {
 			return false;
 		}
 	}
-}
+
+	public static String parseLongDate(long time) {
+		// 1000 ms in 1 s
+		// 60s in 1 m
+		// 60m in 1 h
+		// 24h in 1 d
+		long second = 1000;
+		long minute = second * 60;
+		long hour = minute * 60;
+		long day = hour * 24;
+
+		long timeLeft = time;
+		String output = "";
+
+		if (timeLeft > day) {
+			output += (time - (time % day)) / day + "d ";
+			timeLeft = timeLeft % day;
+		}
+
+		if (timeLeft > hour) {
+			output += (timeLeft - (timeLeft % hour)) / hour + "h ";
+			timeLeft = timeLeft % hour;
+		}
+
+		if (timeLeft > minute) {
+			output += (timeLeft - (timeLeft % minute)) / minute + "m ";
+			timeLeft = timeLeft % minute;
+		}
+
+		if (timeLeft > second) {
+			output += (timeLeft - (timeLeft % second)) / second + "s ";
+			timeLeft = timeLeft % second;
+		}
+
+		return output;
+	}
