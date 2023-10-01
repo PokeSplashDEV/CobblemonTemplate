@@ -12,7 +12,7 @@ public class CobblemonTemplate
 	public static final String MOD_ID = "cobblemontemplate";
 
 	public static final Permissions permissions = new Permissions();
-	public static final Logger logger = LogManager.getLogger();
+	public static final Logger LOGGER = LogManager.getLogger();
 
 	public static void init() {
 		// Adds command to registry

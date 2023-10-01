@@ -1,8 +1,13 @@
 package org.pokesplash.cobblemontemplate.util;
 
+import com.cobblemon.mod.common.api.Priority;
+import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.item.ItemStack;
 import org.pokesplash.cobblemontemplate.CobblemonTemplate;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -63,12 +68,11 @@ public abstract class Utils {
 
 				@Override
 				public void failed(Throwable exc, ByteBuffer attachment) {
-					CobblemonTemplate.logger.fatal("Unable to write file asynchronously, attempting sync write.");
 					future.complete(writeFileSync(file, data));
 				}
 			});
 		} catch (IOException | SecurityException e) {
-			CobblemonTemplate.logger.fatal("Unable to write file asynchronously, attempting sync write.");
+			CobblemonTemplate.LOGGER.fatal("Unable to write file asynchronously, attempting sync write.");
 			future.complete(future.complete(false));
 		}
 
@@ -88,7 +92,7 @@ public abstract class Utils {
 			writer.close();
 			return true;
 		} catch (Exception e) {
-			CobblemonTemplate.logger.fatal("Unable to write to file for " + CobblemonTemplate.MOD_ID + ".\nStack Trace: ");
+			CobblemonTemplate.LOGGER.fatal("Unable to write to file for " + CobblemonTemplate.MOD_ID + ".\nStack Trace: ");
 			e.printStackTrace();
 			return false;
 		}
@@ -133,7 +137,6 @@ public abstract class Utils {
 			executor.shutdown();
 			future.complete(true);
 		} catch (Exception e) {
-			CobblemonTemplate.logger.error("Unable to read file " + filename + " async, attempting to read sync.");
 			future.complete(readFileSync(file, callback));
 			executor.shutdown();
 		}
@@ -160,7 +163,7 @@ public abstract class Utils {
 			callback.accept(data);
 			return true;
 		} catch (Exception e) {
-			CobblemonTemplate.logger.fatal("Unable to read file " + file.getName() + " for " + CobblemonTemplate.MOD_ID + ".\nStack Trace: ");
+			CobblemonTemplate.LOGGER.fatal("Unable to read file " + file.getName() + " for " + CobblemonTemplate.MOD_ID + ".\nStack Trace: ");
 			e.printStackTrace();
 			return false;
 		}
@@ -250,3 +253,64 @@ public abstract class Utils {
 
 		return output;
 	}
+
+	public static String capitaliseFirst(String message) {
+
+		if (message.contains("[") || message.contains("]")) {
+			return message.replaceAll("\\[|\\]", "");
+		}
+
+		if (message.contains("_")) {
+			String[] messages = message.split("_");
+			String output = "";
+			for (String msg : messages) {
+				output += capitaliseFirst(msg);
+			}
+			return output;
+		}
+
+		return message.substring(0, 1).toUpperCase() + message.substring(1).toLowerCase();
+	}
+
+	public static boolean isHA(Pokemon pokemon) {
+		if (pokemon.getForm().getAbilities().getMapping().get(Priority.LOW).size() != 1) {
+			return false;
+		}
+		String ability =
+				pokemon.getForm().getAbilities().getMapping().get(Priority.LOW).get(0).getTemplate().getName();
+
+		return pokemon.getAbility().getName().equalsIgnoreCase(ability);
+	}
+
+	public static String formatPlaceholders(String message, double minPrice, String listing,
+	                                        String seller, String buyer) {
+		String newMessage = message;
+		if (message == null) {
+			return "";
+		}
+
+		if (listing != null) {
+			newMessage = newMessage.replaceAll("\\{listing\\}", listing);
+		}
+
+		if (seller != null) {
+			newMessage = newMessage.replaceAll("\\{seller\\}", seller);
+		}
+
+		if (buyer != null) {
+			newMessage = newMessage.replaceAll("\\{buyer\\}", buyer);
+		}
+
+		return newMessage
+				.replaceAll("\\{min_price\\}", "" + minPrice)
+				.replaceAll("\\{max_listings\\}", "" + "FORMAT ME")
+				.replaceAll("\\{max_price\\}", "" + "FORMAT ME");
+	}
+
+	public static ItemStack parseItemId(String id) {
+		CompoundTag tag = new CompoundTag();
+		tag.putString("id", id);
+		tag.putInt("Count", 1);
+		return ItemStack.of(tag);
+	}
+}
