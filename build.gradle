@@ -46,12 +46,8 @@ allprojects {
         }
 
         maven {
-            url = uri("https://cursemaven.com")
-            content {
-                includeGroup("curse.maven")
-            }
+            url "https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/"
         }
-
     }
 
     tasks.withType(JavaCompile) {
